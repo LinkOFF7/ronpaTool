@@ -47,11 +47,6 @@ namespace ronpaTool
             }
         }
 
-        static void RepackOBB(string input, string outputObb)
-        {
-
-        }
-
         static void FindMP4(string fileName)
         {
             var extension = Path.GetExtension(fileName);
