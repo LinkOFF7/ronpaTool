@@ -15,6 +15,7 @@ namespace ronpaTool
             var ext = Path.GetExtension(args[0]);
             if (ext == ".obb") ExtractOBB(args[0]);
             else if (ext == ".ab") FindMP4(args[0]);
+            else if (ext == ".wad") ExtractWAD(args[0]);
             else Console.WriteLine($"Unknown extension: {ext}. This program worked with .obb and .ab (movie) file formats.");
         }
 
@@ -40,6 +41,43 @@ namespace ronpaTool
                     Console.WriteLine($@"Extracting: {pathString}");
                     File.WriteAllBytes($@"{fileName}\{pathString}", file);
                     reader.BaseStream.Seek(savePosition, SeekOrigin.Begin);
+                }
+                Console.WriteLine("");
+                Console.WriteLine($@"{files} files successfuly extracted! Press any key to exit.");
+                Console.ReadKey();
+            }
+        }
+
+        static void ExtractWAD(string fileName)
+        {
+            using (BinaryReader reader = new BinaryReader(File.OpenRead(fileName)))
+            {
+                var wadName = Path.GetFileNameWithoutExtension(fileName);
+                var header = reader.ReadInt32();
+                if (header != 0x52414741)
+                {
+                    Console.WriteLine($"Unsupported WAD format: {header}");
+                    Console.ReadKey();
+                    return;
+                }
+                reader.BaseStream.Seek(0x10, SeekOrigin.Begin);
+                var files = reader.ReadInt32();
+                for (int i = 0; i < files; i++)
+                {
+                    var nameSize = reader.ReadInt32();
+                    var name = Encoding.UTF8.GetString(reader.ReadBytes(nameSize));
+                    var size = reader.ReadInt64();
+                    var sizeM = size & 0x7FFFFFFFFFFFFFFF;
+                    var offset = reader.ReadInt64();
+                    var offsetM = offset & 0x7FFFFFFFFFFFFFFF;
+                    var currentPos = reader.BaseStream.Position;
+                    reader.BaseStream.Seek(offsetM, SeekOrigin.Begin);
+                    var file = reader.ReadBytes((int)sizeM);
+                    var folderName = Path.GetDirectoryName(name);
+                    Directory.CreateDirectory($@"{wadName}\{folderName}");
+                    Console.WriteLine($@"Extracting: {name}");
+                    File.WriteAllBytes($@"{wadName}\{name}", file);
+                    reader.BaseStream.Seek(currentPos, SeekOrigin.Begin);
                 }
                 Console.WriteLine("");
                 Console.WriteLine($@"{files} files successfuly extracted! Press any key to exit.");
